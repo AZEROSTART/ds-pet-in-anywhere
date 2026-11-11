@@ -59,33 +59,46 @@ test('Electron 安装目录无法创建时返回 undefined，不产生未处理�
 function withIsolatedHome(fn: (dir: string) => void): void {
   const dir = mkdtempSync(join(tmpdir(), 'dsh-pet-test-'));
   const savedHome = process.env.DSH_HOME;
+  const savedPetHome = process.env.OPENCODE_PET_HOME;
   const savedPath = process.env.DSH_PET_ELECTRON_PATH;
   try {
     process.env.DSH_HOME = join(dir, 'dshhome');
+    delete process.env.OPENCODE_PET_HOME;
     process.env.DSH_PET_ELECTRON_PATH = '';
     fn(dir);
   } finally {
     if (savedHome === undefined) delete process.env.DSH_HOME;
     else process.env.DSH_HOME = savedHome;
+    if (savedPetHome === undefined) delete process.env.OPENCODE_PET_HOME;
+    else process.env.OPENCODE_PET_HOME = savedPetHome;
     if (savedPath === undefined) delete process.env.DSH_PET_ELECTRON_PATH;
     else process.env.DSH_PET_ELECTRON_PATH = savedPath;
     rmSync(dir, { recursive: true, force: true });
   }
 }
 
-describe('dshHomeDir —— $DSH_HOME 解析', () => {
-  test('优先认 DSH_HOME 环境变量', () => {
+describe('dshHomeDir —— 宠物数据目录解析', () => {
+  test('优先认 OPENCODE_PET_HOME', () => {
+    withIsolatedHome((dir) => {
+      process.env.OPENCODE_PET_HOME = join(dir, 'pet');
+      process.env.DSH_HOME = join(dir, 'custom');
+      assert.equal(dshHomeDir(), join(dir, 'pet'));
+    });
+  });
+
+  test('DSH_HOME 作为兼容回退', () => {
     withIsolatedHome((dir) => {
       process.env.DSH_HOME = join(dir, 'custom');
       assert.equal(dshHomeDir(), join(dir, 'custom'));
     });
   });
 
-  test('未设 DSH_HOME 时回落到 ~/.dsh', () => {
+  test('都没设时回落到 ~/.opencode-pet', () => {
     withIsolatedHome(() => {
       delete process.env.DSH_HOME;
+      delete process.env.OPENCODE_PET_HOME;
       const userProfile = process.env.USERPROFILE || process.env.HOME || '';
-      assert.equal(dshHomeDir(), join(userProfile, '.dsh'));
+      assert.equal(dshHomeDir(), join(userProfile, '.opencode-pet'));
     });
   });
 });

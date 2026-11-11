@@ -70,10 +70,7 @@ ${args.map((arg) => `    <string>${xml(arg)}</string>`).join('\n')}
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
-  <dict>
-    <key>SuccessfulExit</key>
-    <false/>
-  </dict>
+  <true/>
   <key>ThrottleInterval</key>
   <integer>10</integer>
   <key>ProcessType</key>
@@ -112,6 +109,18 @@ export async function installLaunchAgent(
     await exec('launchctl', ['kickstart', '-k', `${domain()}/${LAUNCHD_LABEL}`]);
   } catch {
     // kickstart 失败时 plist 仍在，下次登录会自启。
+  }
+}
+
+/**
+ * 只停服务、保留 plist：用于托盘「退出」——立即退出且不被 KeepAlive 拉起，
+ * 下次登录仍会自启。
+ */
+export async function stopLaunchAgent(exec: Exec = defaultExec): Promise<void> {
+  try {
+    await exec('launchctl', ['bootout', `${domain()}/${LAUNCHD_LABEL}`]);
+  } catch {
+    // 没在跑：视为已停
   }
 }
 

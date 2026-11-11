@@ -108,7 +108,14 @@ function createTray({
     if (!pets.length) return null; // 配置里没有任何宠物：没有可切换的对象，不建托盘
     const canQuit = await canQuitSelf();
     const quitApp = () => {
-      if (!isBridge || appMode) {
+      if (appMode) {
+        // 应用模式：交给宿主执行 shutdown（会先 bootout launchd），避免被 KeepAlive 拉回来。
+        hostRequest('POST', petRoute + '/quit').catch((e) => {
+          console.error('[dsh-pet-desktop-helper] tray quit failed:', String(e && e.message ? e.message : e));
+        });
+        return;
+      }
+      if (!isBridge) {
         app.quit();
         return;
       }

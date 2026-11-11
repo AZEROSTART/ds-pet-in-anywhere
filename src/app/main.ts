@@ -236,7 +236,15 @@ async function boot(): Promise<void> {
     if (requestedQuit && launchAgentInstalled()) {
       event.preventDefault();
       releaseRuntimeRef?.();
-      void stopLaunchAgent().finally(finish);
+      void stopLaunchAgent().then((stopped) => {
+        if (!stopped) {
+          // bootout 失败：KeepAlive 会把进程拉回来，退出只会变成“关不掉”。取消本次退出。
+          console.error('[dsh-pet-app] launchd bootout 失败，取消退出');
+          quitting = false;
+          return;
+        }
+        finish();
+      });
       return;
     }
     finish();

@@ -21,7 +21,7 @@ function recorder() {
 }
 
 describe('launchd', () => {
-  test('plist 带 label、RunAtLoad、crash-only KeepAlive 与参数', () => {
+  test('plist 带 label、RunAtLoad、KeepAlive 与参数', () => {
     const plist = plistFor(args);
     assert.match(plist, new RegExp(`<string>${LAUNCHD_LABEL}</string>`));
     assert.match(plist, /<key>RunAtLoad<\/key>\s*<true\/>/);

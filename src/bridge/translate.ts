@@ -74,7 +74,8 @@ function dshEventOf(event: BridgeEvent, data: Record<string, unknown>): DshSessi
     case 'permission.asked':
       return {
         type: 'approval/asked',
-        data: { action: text(data.action), message: text(data.message) },
+        // 宿主 notify-events 读的是 toolName / reason。
+        data: { toolName: text(data.action), reason: text(data.message) },
       };
     case 'permission.replied':
       return { type: 'approval/replied', data: {} };

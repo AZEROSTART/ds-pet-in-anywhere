@@ -92,6 +92,24 @@ describe('bridge client', () => {
     }
   });
 
+  test('runtime 在启动后出现：下一次发送会重新读取并连接', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'opencode-pet-plugin-'));
+    try {
+      const { calls, fetch } = fetchRecorder();
+      const client = createBridgeClient({ home, fetch, batchMs: 1, log: () => {} });
+      client.send([event('e1')]);
+      await sleep(20);
+      assert.equal(calls.length, 0);
+      runtime(home, 3333, 'tok3');
+      client.send([event('e2')]);
+      await sleep(30);
+      assert.equal(calls.length, 1);
+      assert.match(calls[0]!.url, /:3333\//);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
   test('bye 发一次再 dispose，之后不再发请求', async () => {
     const home = mkdtempSync(join(tmpdir(), 'opencode-pet-plugin-'));
     try {

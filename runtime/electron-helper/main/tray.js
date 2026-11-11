@@ -117,6 +117,22 @@ function createTray({
         console.error('[dsh-pet-desktop-helper] tray quit failed:', String(e && e.message ? e.message : e));
       });
     };
+    // 开机启动（仅 macOS）：状态由本机路由提供；切换后重建菜单让勾选立刻更新。
+    let startup = false;
+    if (process.platform === 'darwin') {
+      try {
+        startup = JSON.parse((await hostRequest('GET', petRoute + '/launchd')).body || '{}').installed === true;
+      } catch {
+        /* 读不到就按未安装显示，不挡其它菜单项 */
+      }
+    }
+    const toggleStartup = () => {
+      hostRequest('POST', petRoute + '/launchd', JSON.stringify({ enabled: !startup }))
+        .then(() => refreshTray())
+        .catch((e) => {
+          console.error('[dsh-pet-desktop-helper] tray launchd failed:', String(e && e.message ? e.message : e));
+        });
+    };
     return Menu.buildFromTemplate([
       ...pets.map((pet) => ({
         label: pet.name || pet.id,
@@ -124,6 +140,9 @@ function createTray({
         checked: isDesktopDisplay(pet.display),
         click: () => traySetPetDisplay(pet.id, toggleDisplay(pet.display)),
       })),
+      ...(process.platform === 'darwin'
+        ? [{ type: 'checkbox', label: '开机启动', checked: startup, click: toggleStartup }]
+        : []),
       ...(canQuit ? [{ type: 'separator' }, { label: '退出', click: quitApp }] : []),
     ]);
   }

@@ -26,6 +26,8 @@ import { ROUTE_SEGMENT } from '../shared/constants.ts';
 import { writeRuntime } from '../bridge/runtime.ts';
 import { createBridgeLink } from '../bridge/link.ts';
 import { createBridgeRoutes } from '../bridge/routes.ts';
+import { createLaunchdRoutes } from './launchd-routes.ts';
+import { installLaunchAgent, isLaunchedByLaunchd } from './launchd.ts';
 
 /**
  * `electron` 由 Electron 运行时提供，不是本包依赖；只声明实际用到的成员。
@@ -61,8 +63,33 @@ const log = (message: string): void => console.log(`[dsh-pet-app] ${message}`);
 const locked = app.requestSingleInstanceLock();
 if (!locked) {
   app.exit(0);
+} else if (shouldDelegateToLaunchd()) {
+  // 所有实例都交给 launchd 托管：手动启动只负责 bootstrap，然后退出。
+  // 失败时退回当前进程，至少宠物能起来（只是不受 KeepAlive 监管）。
+  try {
+    await installLaunchAgent(dshHomeDir(), launchArgs());
+    app.exit(0);
+  } catch (error) {
+    console.error(`[dsh-pet-app] launchd 安装失败，改为前台运行：${String(error)}`);
+    await boot();
+  }
 } else {
   await boot();
+}
+
+/** 是否把本次启动委托给 launchd（macOS、非 launchd 拉起、未显式禁用）。 */
+function shouldDelegateToLaunchd(): boolean {
+  return (
+    process.platform === 'darwin' &&
+    !isLaunchedByLaunchd(process.argv) &&
+    process.env.OPENCODE_PET_NO_RELAUNCH !== '1'
+  );
+}
+
+/** launchd 要执行的命令：dev 是 Electron + app.js，打包后是 app 可执行文件。 */
+function launchArgs(): string[] {
+  const defaultApp = (process as NodeJS.Process & { defaultApp?: boolean }).defaultApp === true;
+  return defaultApp ? [process.execPath, process.argv[1] ?? '', '--launchd'] : [process.execPath, '--launchd'];
 }
 
 /**
@@ -119,6 +146,7 @@ async function boot(): Promise<void> {
   // OpenCode 桥：链接状态机 + 三条 HTTP 路由。路由必须在 startRouter 之前进数组。
   const bridge = createBridgeLink({ emit: context.emit });
   routes.push(...createBridgeRoutes({ link: bridge, log }));
+  routes.push(...createLaunchdRoutes({ home: dshHomeDir(), args: launchArgs(), log }));
   const bridgeTimer = setInterval(() => bridge.tick(Date.now()), 5_000);
   bridgeTimer.unref?.();
 

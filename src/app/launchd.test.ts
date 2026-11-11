@@ -25,7 +25,7 @@ describe('launchd', () => {
     const plist = plistFor(args);
     assert.match(plist, new RegExp(`<string>${LAUNCHD_LABEL}</string>`));
     assert.match(plist, /<key>RunAtLoad<\/key>\s*<true\/>/);
-    assert.match(plist, /<key>KeepAlive<\/key>\s*<dict>\s*<key>SuccessfulExit<\/key>\s*<false\/>/);
+    assert.match(plist, /<key>KeepAlive<\/key>\s*<true\/>/);
     assert.match(plist, /--launchd/);
     assert.match(plist, /<key>ThrottleInterval<\/key>\s*<integer>10<\/integer>/);
   });

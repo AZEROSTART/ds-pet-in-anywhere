@@ -128,7 +128,7 @@ describe('createTray —— 勾选与点击', () => {
 });
 
 describe('createTray —— 退出项的分支', () => {
-  test('应用模式：自己 app.quit()，不请求宿主', async () => {
+  test('应用模式：把退出交给宿主（launchd 由宿主 bootout）', async () => {
     const { tray, menus, quits, requests } = harness({
       appMode: true,
       pets: [{ label: 'a', id: 'a', display: 'both' }],
@@ -137,11 +137,8 @@ describe('createTray —— 退出项的分支', () => {
     const quit = lastMenu(menus).find((item) => item.label === '退出');
     assert.ok(quit?.click, '应用模式必须有退出项');
     quit.click();
-    assert.deepEqual(quits, ['app.quit']);
-    assert.equal(
-      requests.some((request) => request.startsWith('POST') && request.endsWith('/quit')),
-      false,
-    );
+    assert.deepEqual(quits, [], '不得自己 app.quit()，否则会绕过 launchd bootout');
+    assert.ok(requests.includes('POST /dsh-pet-7340/quit'));
   });
 
   test('bridge 且宿主允许：把退出交给宿主（自己退会被当成崩溃重启）', async () => {

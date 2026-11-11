@@ -8,6 +8,7 @@
 
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { flattenPetList, readAllConfig } from '../host/config.ts';
@@ -27,7 +28,7 @@ import { writeRuntime } from '../bridge/runtime.ts';
 import { createBridgeLink } from '../bridge/link.ts';
 import { createBridgeRoutes } from '../bridge/routes.ts';
 import { createLaunchdRoutes } from './launchd-routes.ts';
-import { installLaunchAgent, isLaunchedByLaunchd } from './launchd.ts';
+import { installLaunchAgent, isLaunchedByLaunchd, launchAgentInstalled, stopLaunchAgent } from './launchd.ts';
 
 /**
  * `electron` 由 Electron 运行时提供，不是本包依赖；只声明实际用到的成员。
@@ -43,9 +44,10 @@ interface ElectronApp {
   whenReady(): Promise<void>;
   requestSingleInstanceLock(): boolean;
   exit(code?: number): void;
+  quit(): void;
   on(event: 'web-contents-created', listener: (event: unknown, contents: WebContentsLike) => void): void;
   on(event: 'second-instance', listener: () => void): void;
-  on(event: 'will-quit', listener: () => void): void;
+  on(event: 'will-quit', listener: (event: { preventDefault(): void }) => void): void;
 }
 const { app, session } = createRequire(import.meta.url)('electron') as {
   app: ElectronApp;
@@ -59,6 +61,11 @@ const helperMain = join(packageRoot, 'runtime', 'electron-helper', 'main.js');
 
 const log = (message: string): void => console.log(`[dsh-pet-app] ${message}`);
 
+/** 托盘「退出」：先 bootout 再退，KeepAlive 不会把它拉回来。 */
+let requestedQuit = false;
+let quitting = false;
+let releaseRuntimeRef: (() => void) | undefined;
+
 /** 单实例：第二次双击直接退出（共用 userData 的 Chromium profile 会互踢） */
 const locked = app.requestSingleInstanceLock();
 if (!locked) {
@@ -67,7 +74,7 @@ if (!locked) {
   // 所有实例都交给 launchd 托管：手动启动只负责 bootstrap，然后退出。
   // 失败时退回当前进程，至少宠物能起来（只是不受 KeepAlive 监管）。
   try {
-    await installLaunchAgent(dshHomeDir(), launchArgs());
+    await installLaunchAgent(homedir(), launchArgs());
     app.exit(0);
   } catch (error) {
     console.error(`[dsh-pet-app] launchd 安装失败，改为前台运行：${String(error)}`);
@@ -141,12 +148,16 @@ async function boot(): Promise<void> {
     routes,
     ai,
     authenticatedUrl: security.authenticatedUrl,
+    shutdown: () => {
+      requestedQuit = true;
+      app.quit();
+    },
   });
 
   // OpenCode 桥：链接状态机 + 三条 HTTP 路由。路由必须在 startRouter 之前进数组。
   const bridge = createBridgeLink({ emit: context.emit });
   routes.push(...createBridgeRoutes({ link: bridge, log }));
-  routes.push(...createLaunchdRoutes({ home: dshHomeDir(), args: launchArgs(), log }));
+  routes.push(...createLaunchdRoutes({ home: homedir(), args: launchArgs(), log }));
   const bridgeTimer = setInterval(() => bridge.tick(Date.now()), 5_000);
   bridgeTimer.unref?.();
 
@@ -156,7 +167,7 @@ async function boot(): Promise<void> {
   log(`本机服务 ${origin}`);
 
   // OpenCode 插件靠这个文件找端口与令牌；先写它，再 apply / 建窗。
-  const releaseRuntime = writeRuntime(dshHomeDir(), {
+  releaseRuntimeRef = writeRuntime(dshHomeDir(), {
     name: 'opencode-pet',
     version: packageVersion(packageRoot),
     pid: process.pid,
@@ -208,15 +219,27 @@ async function boot(): Promise<void> {
   }
 
   app.on('second-instance', () => log('已有一个实例在运行，忽略本次启动'));
-  app.on('will-quit', () => {
-    // 退出前把最后一批日志刷出去（定时器最多 1s，这里显式补一次）
-    void logger.flush();
-    logger.dispose();
-    clearInterval(bridgeTimer);
-    releaseRuntime();
-    void ai.dispose();
-    void context.dispose().catch(() => undefined);
-    void server.close().catch(() => undefined);
+  app.on('will-quit', (event) => {
+    if (quitting) return;
+    quitting = true;
+    const finish = (): void => {
+      // 退出前把最后一批日志刷出去（定时器最多 1s，这里显式补一次）
+      void logger.flush();
+      logger.dispose();
+      clearInterval(bridgeTimer);
+      releaseRuntimeRef?.();
+      void ai.dispose();
+      void context.dispose().catch(() => undefined);
+      void server.close().catch(() => undefined);
+      app.exit(0);
+    };
+    if (requestedQuit && launchAgentInstalled()) {
+      event.preventDefault();
+      releaseRuntimeRef?.();
+      void stopLaunchAgent().finally(finish);
+      return;
+    }
+    finish();
   });
 }
 

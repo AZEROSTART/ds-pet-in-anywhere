@@ -59,8 +59,38 @@ export interface StandaloneContext {
   routes: RegisteredRoute[];
   /** 初始化期间被记录下来的异常，每项都已打日志。 */
   failures: string[];
+  /** 触发一个宿主事件（独立模式的会话事件由 OpenCode bridge 注入）。 */
+  emit(name: string, ...args: unknown[]): void;
   /** 释放全部 effect：停桌面 Helper、清周期定时器。 */
   dispose(): Promise<void>;
+}
+
+/** 事件名 → handler 集合；`on` 返回取消订阅。 */
+function createEventHub(logger: StandaloneLogger) {
+  const handlers = new Map<string, Set<(...args: unknown[]) => void>>();
+  return {
+    on(name: string, handler: (...args: unknown[]) => void): () => void {
+      const set = handlers.get(name) ?? new Set();
+      set.add(handler);
+      handlers.set(name, set);
+      return () => {
+        set.delete(handler);
+        if (set.size === 0) handlers.delete(name);
+      };
+    },
+    emit(name: string, ...args: unknown[]): void {
+      const set = handlers.get(name);
+      if (!set) return;
+      // 快照：handler 内取消订阅不应影响本次分发。
+      for (const handler of [...set]) {
+        try {
+          handler(...args);
+        } catch (error) {
+          logger.warn(`事件 handler 失败（已跳过）：${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+    },
+  };
 }
 
 /**
@@ -143,14 +173,13 @@ export function createStandaloneContext(options: StandaloneContextOptions): Stan
 
   const portOf = (): number => (typeof options.port === 'function' ? options.port() : options.port);
   const webServer = createWebServer(routes, portOf);
+  const hub = createEventHub(logger);
 
   const context: Record<string, unknown> = {
     effect: createEffectRunner(disposers, failures, logger),
     ...createServiceRegistry(services, () => context),
-    /** 独立模式没有 DSH 会话事件：不订阅，工作状态保持空闲。 */
-    on(): () => void {
-      return () => {};
-    },
+    /** 独立模式的宿主事件由 OpenCode bridge 经 `emit` 注入。 */
+    on: hub.on,
     logger,
     webServer,
     connection: { authenticatedUrl: options.authenticatedUrl ?? ((baseUrl: string): string => baseUrl) },
@@ -178,6 +207,7 @@ export function createStandaloneContext(options: StandaloneContextOptions): Stan
     ctx: context,
     routes,
     failures,
+    emit: hub.emit,
     async dispose(): Promise<void> {
       if (disposed) return;
       disposed = true;

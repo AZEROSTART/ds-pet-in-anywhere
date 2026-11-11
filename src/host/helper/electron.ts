@@ -108,7 +108,8 @@ export function hasGraphicalDisplay(): boolean {
 /** $DSH_HOME（默认 ~/.dsh）；测试与独立模式共用这一处推导。 */
 export function dshHomeDir(env: NodeJS.ProcessEnv = process.env): string {
   const userProfile = env.USERPROFILE || env.HOME || '';
-  return env.OPENCODE_PET_HOME || join(userProfile, '.opencode-pet');
+  // DSH_HOME 作为上游兼容回退保留：dsh-pet 的旧配置与测试仍用它做隔离。
+  return env.OPENCODE_PET_HOME || env.DSH_HOME || join(userProfile, '.opencode-pet');
 }
 
 // Electron 官方发布包按平台/架构不同：win32 解压出 electron.exe + 散文件，darwin 是 Electron.app

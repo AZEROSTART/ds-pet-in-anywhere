@@ -159,5 +159,6 @@
     "tsdown": "^0.8.0",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.67.0"
-  }
+  },
+  "author": "OpenCode Pet contributors"
 }

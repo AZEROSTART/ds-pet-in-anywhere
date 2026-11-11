@@ -34,7 +34,7 @@ const ELECTRON_REL =
  * @returns 解压目录，或 undefined（交给 electron-builder 下载）。
  */
 function resolveElectronDist() {
-  const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh');
+  const dshHome = process.env.OPENCODE_PET_HOME || join(homedir(), '.opencode-pet');
   const candidates = [
     process.env.DSH_PET_ELECTRON_DIST,
     process.env.DSH_PET_ELECTRON_PATH ? dirname(process.env.DSH_PET_ELECTRON_PATH) : undefined,
@@ -80,11 +80,12 @@ if (electronDist) {
 }
 
 console.log(`[dist] electron dist: ${electronDist ?? '(无 → 由 electron-builder 下载)'}`);
-console.log(`[dist] target:        win:${target}`);
+console.log(`[dist] target:        ${process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'win' : 'linux'}:${target}`);
 // 直接调用 electron-builder 的 CLI 文件而不经 `pnpm exec`：安装路径可能含单引号，
 // 走 shell 传参会被切碎；node 直接 spawn 没有这层转义问题。
 const cli = join(root, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js');
-const args = [cli, '--win', target];
+const platformFlag = process.platform === 'darwin' ? '--mac' : process.platform === 'win32' ? '--win' : '--linux';
+const args = [cli, platformFlag, target];
 if (electronDist) args.push(`--config.electronDist=${electronDist}`);
 const child = spawn(process.execPath, args, {
   cwd: root,

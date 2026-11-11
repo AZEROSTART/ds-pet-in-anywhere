@@ -49,3 +49,12 @@ win:
   icon: assets/logo.png
   target:
     - dir
+
+mac:
+  icon: build/icon.png
+  category: public.app-category.utilities
+  target:
+    - dir
+  identity: null
+  extendInfo:
+    LSUIElement: true

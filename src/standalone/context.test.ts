@@ -155,3 +155,44 @@ describe('服务替身的降级口径 —— 显式失败，不假装成功', ()
     }, /独立模式未接入模型/);
   });
 });
+
+describe('createStandaloneContext —— 事件 hub', () => {
+  const onOfHub = (context: Standalone) =>
+    context.ctx.on as (name: string, handler: (...args: unknown[]) => void) => () => void;
+
+  test('on/emit 按注册顺序分发给每个 handler', () => {
+    const context = createStandaloneContext({ port: 1, logger: silentLogger() });
+    const on = onOfHub(context);
+    const seen: string[] = [];
+    on('session/event', () => seen.push('a'));
+    on('session/event', () => seen.push('b'));
+    context.emit('session/event', {}, { type: 'turn/start' });
+    assert.deepEqual(seen, ['a', 'b']);
+  });
+
+  test('取消订阅后不再收到事件', () => {
+    const context = createStandaloneContext({ port: 1, logger: silentLogger() });
+    const seen: string[] = [];
+    const off = onOfHub(context)('session/event', () => seen.push('x'));
+    off();
+    context.emit('session/event', {}, {});
+    assert.deepEqual(seen, []);
+  });
+
+  test('单个 handler 抛错不影响后面的 handler', () => {
+    const context = createStandaloneContext({ port: 1, logger: silentLogger() });
+    const on = onOfHub(context);
+    const seen: string[] = [];
+    on('session/event', () => {
+      throw new Error('boom');
+    });
+    on('session/event', () => seen.push('after'));
+    context.emit('session/event', {}, {});
+    assert.deepEqual(seen, ['after']);
+  });
+
+  test('未知事件名是空操作', () => {
+    const context = createStandaloneContext({ port: 1, logger: silentLogger() });
+    assert.doesNotThrow(() => context.emit('nobody/listens', {}));
+  });
+});

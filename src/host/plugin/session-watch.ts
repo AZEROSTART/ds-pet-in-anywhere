@@ -232,9 +232,10 @@ export function registerSessionWatch(deps: SessionWatchInput): void {
       // 顺序反了这一句会被静默丢弃（不报错，最难查的那种）。
       const detail =
         type === 'tool/call' ? toolDetailFromEvent(event as { data?: { name?: unknown; arguments?: unknown } }) : null;
+      const callId = toolCallIdOf(event);
       const outcome = trackToolEvent(toolsInFlight, sessionId, {
         type,
-        callId: toolCallIdOf(event),
+        callId,
         detail,
         lastTodo: lastTodoText.get(sessionId) ?? null,
       });

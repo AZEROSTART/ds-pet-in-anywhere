@@ -69,9 +69,9 @@ describe('translate —— 工具与确认', () => {
     assert.equal(result?.event.data?.isError, true);
   });
 
-  test('permission.asked -> approval/asked', () => {
+  test('permission.asked -> approval/asked（宿主读 toolName/reason）', () => {
     const result = translate(ev('permission.asked', { action: 'bash', message: 'run rm?' }), depth0);
-    assert.deepEqual(result?.event, { type: 'approval/asked', data: { action: 'bash', message: 'run rm?' } });
+    assert.deepEqual(result?.event, { type: 'approval/asked', data: { toolName: 'bash', reason: 'run rm?' } });
   });
 
   test('permission.replied -> approval/replied', () => {

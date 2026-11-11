@@ -2,7 +2,8 @@
  * macOS 开机自启与崩溃恢复：LaunchAgent plist 的生成、安装、移除。
  *
  * 设计：所有实例都由 launchd 托管（`--launchd`），双击启动只负责 bootstrap 后退出。
- * `KeepAlive` 只对非 0 退出生效，托盘「退出」走 exit(0) 不会复活。
+ * `KeepAlive` 为 true：崩溃、SIGTERM、kill 都会被拉起；托盘「退出」先在 will-quit 里
+ * bootout 再退，bootout 失败则取消退出（宁可留着，也不要复活成“关不掉”）。
  *
  * @module opencode-pet/src/app/launchd
  */
@@ -116,11 +117,13 @@ export async function installLaunchAgent(
  * 只停服务、保留 plist：用于托盘「退出」——立即退出且不被 KeepAlive 拉起，
  * 下次登录仍会自启。
  */
-export async function stopLaunchAgent(exec: Exec = defaultExec): Promise<void> {
+export async function stopLaunchAgent(exec: Exec = defaultExec): Promise<boolean> {
   try {
     await exec('launchctl', ['bootout', `${domain()}/${LAUNCHD_LABEL}`]);
+    return true;
   } catch {
-    // 没在跑：视为已停
+    // 没在跑也算已停；真正的失败由调用方决定是否放弃退出。
+    return false;
   }
 }
 

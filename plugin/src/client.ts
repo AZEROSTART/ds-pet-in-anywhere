@@ -87,7 +87,8 @@ export function createBridgeClient(options: BridgeClientOptions): BridgeClient {
   const ensureRuntime = (): Runtime | undefined => {
     if (!runtimeRead) {
       runtime = readRuntime();
-      runtimeRead = true;
+      // 只有读到有效文件才记住；否则下次继续重读（宠物可能稍后才启动）。
+      runtimeRead = runtime !== undefined;
     }
     if (!runtime) {
       if (now() - lastMissingLog > MISSING_LOG_MS) {

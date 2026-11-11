@@ -34,7 +34,7 @@ function createBridgeClient(options) {
   const ensureRuntime = () => {
     if (!runtimeRead) {
       runtime = readRuntime();
-      runtimeRead = true;
+      runtimeRead = runtime !== undefined;
     }
     if (!runtime) {
       if (now() - lastMissingLog > MISSING_LOG_MS) {

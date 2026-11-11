@@ -12,7 +12,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** 桌面端 Electron userData 目录名（= main.js 的 app.setName 入参）。 */
-export const DESKTOP_APP_NAME = 'dsh-pet-electron-helper';
+export const DESKTOP_APP_NAME = 'opencode-pet-electron-helper';
 
 /** Electron 下载缓存的应用名（@electron/get 写死 env-paths('electron')，与插件名无关）。 */
 const ELECTRON_PATHS_NAME = 'electron';

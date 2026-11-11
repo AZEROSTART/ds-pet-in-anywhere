@@ -15,7 +15,7 @@ import { join, resolve } from 'node:path';
 import { downloadArtifact } from '@electron/get';
 import extract from '@electron-internal/extract-zip';
 
-const HOME = process.env.DSH_HOME || join(process.env.USERPROFILE || process.env.HOME || '', '.dsh');
+const HOME = process.env.OPENCODE_PET_HOME || join(process.env.USERPROFILE || process.env.HOME || '', '.opencode-pet');
 const VERSION = process.env.DSH_PET_ELECTRON_VERSION || '43.3.0';
 const MIRROR = process.env.DSH_PET_ELECTRON_MIRROR || 'https://npmmirror.com/mirrors/electron/';
 const TARGET_DIR = resolve(HOME, 'electron');

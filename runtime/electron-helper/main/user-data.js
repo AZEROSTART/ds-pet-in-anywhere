@@ -20,7 +20,7 @@ const PROBE_NAME = '.dsh-pet-write-probe';
  * @returns {string} 绝对路径。
  */
 function dshHomeDir(env = process.env, home = os.homedir()) {
-  return env.DSH_HOME || path.join(home, '.dsh');
+  return env.OPENCODE_PET_HOME || env.DSH_HOME || path.join(home, '.opencode-pet');
 }
 
 /**

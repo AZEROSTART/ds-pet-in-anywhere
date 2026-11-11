@@ -97,7 +97,7 @@ describe('createTray —— 勾选与点击', () => {
       ],
     });
     await tray.start();
-    const items = lastMenu(menus).filter((item) => item.type === 'checkbox');
+    const items = lastMenu(menus).filter((item) => item.type === 'checkbox' && item.label !== '开机启动');
     assert.deepEqual(
       items.map((item) => item.checked),
       [true, false, true],

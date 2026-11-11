@@ -37,6 +37,8 @@ if (!electron) {
 const env = { ...process.env };
 // 宿主里可能带着它：会让 Electron 以纯 Node 模式启动，应用入口 require('electron') 直接失败
 delete env.ELECTRON_RUN_AS_NODE;
+// 开发期不要把自己委托给 launchd：前台跑、Ctrl+C 可停，方便调试。
+env.OPENCODE_PET_NO_RELAUNCH = '1';
 
 const child = spawn(electron, [join(root, 'lib', 'app.js')], { cwd: root, env, stdio: 'inherit' });
 child.on('exit', (code) => process.exit(code ?? 0));

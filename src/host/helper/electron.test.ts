@@ -5,8 +5,9 @@
  */
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { join } from 'node:path';
 
-import { DESKTOP_DEBUG_PORT, helperLaunchArgs, shouldForceXWayland } from './electron.ts';
+import { DESKTOP_DEBUG_PORT, dshHomeDir, helperLaunchArgs, shouldForceXWayland } from './electron.ts';
 
 describe('helperLaunchArgs —— 桌面 Helper 启动参数', () => {
   test('端口 0：只有脚本路径，不挂调试开关', () => {
@@ -58,5 +59,25 @@ describe('shouldForceXWayland —— Wayland 会话是否强制 X11', () => {
   test('非 linux 平台：不强制', () => {
     assert.equal(shouldForceXWayland({ WAYLAND_DISPLAY: 'wayland-0', DISPLAY: ':0' }, 'win32'), false);
     assert.equal(shouldForceXWayland({ WAYLAND_DISPLAY: 'wayland-0', DISPLAY: ':0' }, 'darwin'), false);
+  });
+});
+
+describe('dshHomeDir —— 宠物数据目录', () => {
+  test('默认 ~/.opencode-pet', () => {
+    assert.equal(dshHomeDir({ HOME: '/Users/me' } as NodeJS.ProcessEnv), '/Users/me/.opencode-pet');
+  });
+
+  test('OPENCODE_PET_HOME 优先于 HOME', () => {
+    assert.equal(
+      dshHomeDir({ HOME: '/Users/me', OPENCODE_PET_HOME: '/tmp/pet' } as NodeJS.ProcessEnv),
+      '/tmp/pet',
+    );
+  });
+
+  test('USERPROFILE 作为 HOME 缺失时的回退', () => {
+    assert.equal(
+      dshHomeDir({ USERPROFILE: 'C:\\Users\\me', OPENCODE_PET_HOME: undefined } as NodeJS.ProcessEnv),
+      join('C:\\Users\\me', '.opencode-pet'),
+    );
   });
 });

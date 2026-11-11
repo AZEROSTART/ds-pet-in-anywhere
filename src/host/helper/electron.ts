@@ -106,9 +106,9 @@ export function hasGraphicalDisplay(): boolean {
 }
 
 /** $DSH_HOME（默认 ~/.dsh）；测试与独立模式共用这一处推导。 */
-export function dshHomeDir(): string {
-  const userProfile = process.env.USERPROFILE || process.env.HOME || '';
-  return process.env.DSH_HOME || join(userProfile, '.dsh');
+export function dshHomeDir(env: NodeJS.ProcessEnv = process.env): string {
+  const userProfile = env.USERPROFILE || env.HOME || '';
+  return env.OPENCODE_PET_HOME || join(userProfile, '.opencode-pet');
 }
 
 // Electron 官方发布包按平台/架构不同：win32 解压出 electron.exe + 散文件，darwin 是 Electron.app

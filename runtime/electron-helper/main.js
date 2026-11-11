@@ -68,14 +68,14 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 const APP_MODE = process.env.DSH_PET_APP_MODE === '1';
 // 只供同进程应用自己的请求使用，绝不出现在渲染端地址或日志里。
 const APP_TOKEN = APP_MODE ? process.env.DSH_PET_APP_TOKEN : undefined;
-app.setName('dsh-pet-electron-helper');
+app.setName('opencode-pet-electron-helper');
 // Windows 任务栏分组：不设 AppUserModelID 时窗口归到 electron.exe 名下，任务栏按钮意外出现就显示
 // Electron 默认图标。必须在 ready 之前调用；独立应用与 DSH 内 helper 用不同 ID，避免被合成一组。
 if (process.platform === 'win32') {
   app.setAppUserModelId(APP_MODE ? 'com.dsh.pet.app' : 'com.dsh.pet.helper');
 }
 // 应用模式只改数据目录、不改应用名：共用同一个 userData 时两个 Chromium 进程会抢同一份 profile 互踢。
-if (APP_MODE) app.setPath('userData', path.join(app.getPath('appData'), 'dsh-pet'));
+if (APP_MODE) app.setPath('userData', path.join(app.getPath('appData'), 'opencode-pet'));
 
 /** DPI 探测子进程模式：不建窗口，只把主屏 scaleFactor 打到 stdout 就退出（见 probePrimaryScale） */
 const DPI_PROBE = process.env.DSH_PET_DPI_PROBE === '1';

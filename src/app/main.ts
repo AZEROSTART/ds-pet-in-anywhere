@@ -23,6 +23,9 @@ import { createRequestSecurity } from '../standalone/request-security.ts';
 import { installDesktopAuth, type DesktopSession } from './desktop-auth.ts';
 import { startRouter } from './router.ts';
 import { ROUTE_SEGMENT } from '../shared/constants.ts';
+import { writeRuntime } from '../bridge/runtime.ts';
+import { createBridgeLink } from '../bridge/link.ts';
+import { createBridgeRoutes } from '../bridge/routes.ts';
 
 /**
  * `electron` 由 Electron 运行时提供，不是本包依赖；只声明实际用到的成员。
@@ -113,10 +116,27 @@ async function boot(): Promise<void> {
     authenticatedUrl: security.authenticatedUrl,
   });
 
+  // OpenCode 桥：链接状态机 + 三条 HTTP 路由。路由必须在 startRouter 之前进数组。
+  const bridge = createBridgeLink({ emit: context.emit });
+  routes.push(...createBridgeRoutes({ link: bridge, log }));
+  const bridgeTimer = setInterval(() => bridge.tick(Date.now()), 5_000);
+  bridgeTimer.unref?.();
+
   const server = await startRouter(routes, { security, ai, log, status, landingPage });
   port = server.port;
   const origin = `http://127.0.0.1:${port}`;
   log(`本机服务 ${origin}`);
+
+  // OpenCode 插件靠这个文件找端口与令牌；先写它，再 apply / 建窗。
+  const releaseRuntime = writeRuntime(dshHomeDir(), {
+    name: 'opencode-pet',
+    version: packageVersion(packageRoot),
+    pid: process.pid,
+    port,
+    token: security.token,
+    protocol: 1,
+    startedAt: new Date().toISOString(),
+  });
 
   // 先把「我自己就是应用」告诉插件，再 apply：apply 内部据此短路 spawn 与下载
   process.env.DSH_PET_IN_PROCESS = '1';
@@ -164,6 +184,8 @@ async function boot(): Promise<void> {
     // 退出前把最后一批日志刷出去（定时器最多 1s，这里显式补一次）
     void logger.flush();
     logger.dispose();
+    clearInterval(bridgeTimer);
+    releaseRuntime();
     void ai.dispose();
     void context.dispose().catch(() => undefined);
     void server.close().catch(() => undefined);

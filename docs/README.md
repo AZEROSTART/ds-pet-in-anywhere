@@ -10,6 +10,7 @@
 | [opencode-2.2.7-events.md](opencode-2.2.7-events.md) | 对 OpenCode 2.2.7 的事件探针结论：事件形状、关键子集、哪些信号能当焦点                                                                | 升级 OpenCode 版本前对照；排查「状态对不上」 |
 | [implementation-plan.md](implementation-plan.md)     | 实施计划（已完成）：10 个 task 的拆解、验收点与自检记录                                                                               | 想按原顺序重放某个环节，或看当时怎么切任务   |
 | [images/hero.png](images/hero.png)                   | README 头图                                                                                                                           | —                                            |
+| [images/states.png](images/states.png)               | 六档状态拼图：用桥注入一组事件后逐档截取真实窗口（背景换成浅色），不是画出来的示意图                                                  | —                                            |
 
 ## 时间线
 

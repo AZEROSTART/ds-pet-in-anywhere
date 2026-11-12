@@ -1,9 +1,14 @@
-OpenCode Pet
-============
+OpenCode Pet (ds-pet-in-anywhere)
+=================================
+
+A standalone macOS desktop pet that mirrors OpenCode session state.
 
 This product is a derivative port of dsh-pet:
   https://github.com/PC2005-cloud/dsh-pet
   upstream commit: 8b4c1ea (v0.4.7)
+
+Port repository:
+  https://github.com/AZEROSTART/ds-pet-in-anywhere
 
 Code license
 ------------
@@ -25,5 +30,8 @@ The pet character is a community fan creation ("大肥鱼 / 溟月"), not an off
 DeepSeek character. Original character by Bilibili @上善无形; DeepSeek maid
 version designed by Bilibili @ZipZipPipe. See the upstream README for details.
 
-This build is for personal, non-commercial use on the author's own machine.
-Do not redistribute the bundled animation assets commercially.
+This repository is published for personal, non-commercial use. The bundled
+animation assets are NOT public domain and NOT MIT: they stay under
+CC BY-NC-SA 4.0 (non-commercial, attribution, share-alike). If you reuse them,
+keep the attribution above and the same license; if you need commercial use,
+ask the original author.

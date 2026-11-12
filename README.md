@@ -57,7 +57,9 @@ opencode plugin list        # 出现 opencode-pet local
   - **开机启动**：安装/移除 LaunchAgent；
   - **退出**：干净退出，launchd 不会重新拉起。
 - 数据与日志：`~/.opencode-pet/`（`logs.txt`、`config`、`runtime.json`）。
-- OpenCode 联动：OpenCode 运行时宠物跟随会话状态；15 秒没有心跳回到空闲。
+- OpenCode 联动：宠物跟随**你正在用的那个会话**（最近由你亲自发出消息的会话）——后台窗口/其它
+  项目里同时跑着的会话不会抢走展示；还没收到过用户消息时退回「按优先级取最忙的一个」。
+  15 秒没有心跳回到空闲。
 
 ## 关闭 / 卸载
 

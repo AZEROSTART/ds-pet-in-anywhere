@@ -188,10 +188,29 @@ export class WorkStatusStore {
   // ERR_MODULE_NOT_FOUND，整个 profile 起不来（scripts/prepack-check.js 第 8 项守着这条）。
   declare private readonly sessions: Map<string, SessionWorkEntry>;
   declare private readonly snap: WorkStatusSnapshot;
+  /** 用户最近亲自发过消息的会话；非 null 时展示只跟它走（后台会话不抢镜）。 */
+  declare private focus: string | null;
 
   constructor() {
     this.sessions = new Map();
     this.snap = { state: null, task: null, sessionId: null, ts: 0 };
+    this.focus = null;
+  }
+
+  /**
+   * 把展示锁定到某个会话（OpenCode 里用户亲自发消息的那个）。
+   *
+   * 后台/其它窗口的会话照旧记账，只是不再抢展示槽——它们继续打断你的时候，
+   * 「按优先级取最高」会让桌宠几秒一换、动画每换一次从第 0 帧重播，看起来根本没在忙。
+   * 没有焦点会话（还没收到过用户消息）时保持原来的全局优先级行为。
+   *
+   * @returns 是否真的有变化（同一会话重复调用返回 false，不推进 ts）。
+   */
+  setFocus(sessionId: string): boolean {
+    if (this.focus === sessionId) return false;
+    this.focus = sessionId;
+    this.refresh();
+    return true;
   }
 
   /** 该会话当前是否有活动条目（决定 todo/write 是否还值得更新它的文案）。 */
@@ -241,7 +260,8 @@ export class WorkStatusStore {
 
   /** 重算展示：state / task / sessionId 任一变化才更新 ts（轮询侧据此触发，两端都靠它刷新）。 */
   private refresh(): void {
-    const best = pickDisplayed(this.sessions.values());
+    // 有焦点会话就只展示它：条目没了（回合结束）就是空闲，不回落其它会话。
+    const best = this.focus === null ? pickDisplayed(this.sessions.values()) : this.sessions.get(this.focus);
     const nextState = best?.state ?? null;
     const nextTask = best?.task ?? null;
     const nextSession = best?.sessionId ?? null;

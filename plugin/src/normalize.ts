@@ -1,7 +1,7 @@
 /**
  * OpenCode 事件 → opencode-pet 桥事件。
  *
- * 只保留宠物需要的字段：会话 id/标题/父子关系、工具名与 call id、确认动作、回复正文。
+ * 只保留宠物需要的字段：会话 id/标题/父子关系、工具名与 call id、确认动作、回复正文、用户消息。
  * 流式 delta、usage、provider/model/plugin 等全局事件一律丢弃，避免把大 payload 发给守护进程。
  *
  * @module opencode-pet/plugin/normalize
@@ -11,6 +11,8 @@ import { randomUUID } from 'node:crypto';
 /** OpenCode 发来的原始事件（只约束真正读取的字段）。 */
 export interface PluginEvent {
   readonly type: string;
+  /** 同一会话内的单调序号；透传给宿主做「同档位取最近」的排序。 */
+  readonly durable?: { readonly seq?: unknown };
   readonly [key: string]: unknown;
 }
 
@@ -22,6 +24,8 @@ export interface BridgeEvent {
   sessionTitle?: string;
   parentID?: string | null;
   at: number;
+  /** OpenCode 的 `durable.seq`（ms 时间戳之外的第二排序依据，缺省不出现）。 */
+  seq?: number;
   data?: Record<string, unknown>;
 }
 
@@ -70,6 +74,7 @@ export function normalize(event: PluginEvent, state: NormalizeState): BridgeEven
     type: event.type,
     sessionID,
     at: typeof event.created === 'number' ? event.created : Date.now(),
+    ...(typeof event.durable?.seq === 'number' ? { seq: event.durable.seq } : {}),
     ...(state.titles.has(sessionID) ? { sessionTitle: state.titles.get(sessionID) } : {}),
     ...(state.parents.has(sessionID) ? { parentID: state.parents.get(sessionID) } : {}),
   });
@@ -125,6 +130,14 @@ export function normalize(event: PluginEvent, state: NormalizeState): BridgeEven
       return { ...base(), data: {} };
     case 'session.text.ended':
       return { ...base(), data: { text: str(data.text) ?? '' } };
+    case 'session.inbox.enqueued': {
+      // 只认用户亲口发的消息（item.type=user）：自动续跑/合成项（synthetic）不算焦点，
+      // 否则后台自动轮会把桌宠从你手上抢走。
+      const item = data.item;
+      const kind = item !== null && typeof item === 'object' ? (item as { type?: unknown }).type : undefined;
+      if (kind !== 'user') return null;
+      return { ...base(), type: 'user.message', data: {} };
+    }
     case 'session.idle':
       return { ...base(), data: {} };
     default:

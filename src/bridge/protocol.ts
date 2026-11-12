@@ -4,10 +4,13 @@
  * 协议版本独立于 app 版本：插件和守护进程可以各自升级，`protocol` 不等时
  * 由守护进程拒收并记日志，避免半懂不懂的事件把宠物状态弄乱。
  *
+ * 版本规则：只有**不向后兼容**的改动才升版本。向后兼容的新增（新事件名、可选字段）
+ * 直接进 1：老宿主会忽略不认识的 type / 字段，升级顺序不会让宠物整体哑掉。
+ *
  * @module opencode-pet/src/bridge/protocol
  */
 
-/** 当前桥协议版本。字段增删必须升版本。 */
+/** 当前桥协议版本。 */
 export const BRIDGE_PROTOCOL = 1;
 
 /** OpenCode 侧归一化后的事件名。 */
@@ -24,7 +27,9 @@ export type BridgeEventType =
   | 'permission.replied'
   | 'session.text.ended'
   | 'session.idle'
-  | 'session.meta';
+  | 'session.meta'
+  /** 用户亲自发出的消息（inbox item.type=user）：宿主据此把展示锁定到「你在用的会话」。 */
+  | 'user.message';
 
 /** 插件发来的一条事件；字段只带宠物需要的，不带完整消息体。 */
 export interface BridgeEvent {
@@ -40,6 +45,11 @@ export interface BridgeEvent {
   parentID?: string | null;
   /** 事件时间戳（ms）。 */
   at: number;
+  /**
+   * OpenCode 的 `durable.seq`：同一会话内的单调序号。
+   * 宿主用它做「同档位谁更近」的排序（缺省按 0 处理，老插件不发也不影响）。
+   */
+  seq?: number;
   /** 事件负载。 */
   data?: Record<string, unknown>;
 }
@@ -64,6 +74,8 @@ export interface BridgeSession {
 export interface DshSessionEvent {
   type: string;
   data?: Record<string, unknown>;
+  /** 透传 OpenCode 的 `durable.seq`：宿主同档位排序用（没有就不出现）。 */
+  seq?: number;
 }
 
 /** 插件 hello：连接建立时发一次。 */

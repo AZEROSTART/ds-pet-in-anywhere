@@ -154,6 +154,7 @@ function normalize(event, state) {
     type: event.type,
     sessionID,
     at: typeof event.created === "number" ? event.created : Date.now(),
+    ...typeof event.durable?.seq === "number" ? { seq: event.durable.seq } : {},
     ...state.titles.has(sessionID) ? { sessionTitle: state.titles.get(sessionID) } : {},
     ...state.parents.has(sessionID) ? { parentID: state.parents.get(sessionID) } : {}
   });
@@ -213,6 +214,13 @@ function normalize(event, state) {
       return { ...base(), data: {} };
     case "session.text.ended":
       return { ...base(), data: { text: str(data.text) ?? "" } };
+    case "session.inbox.enqueued": {
+      const item = data.item;
+      const kind = item !== null && typeof item === "object" ? item.type : undefined;
+      if (kind !== "user")
+        return null;
+      return { ...base(), type: "user.message", data: {} };
+    }
     case "session.idle":
       return { ...base(), data: {} };
     default:

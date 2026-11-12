@@ -103,6 +103,17 @@ describe('bridge link', () => {
     assert.deepEqual(link.snapshot().active, ['s1']);
   });
 
+  test('中途接入的会话（没见过 turn/start）也进 active：bye/超时能清掉它的僵尸状态', () => {
+    const { link, emitted } = harness();
+    link.hello({ protocol: 1, pluginVersion: '0.1.0' });
+    // 插件在回合中途加载：只看到 tool/call，没有 turn/start
+    link.events({ events: [ev('session.tool.called', 's9', { name: 'bash', callId: 'c1' })] });
+    assert.deepEqual(link.snapshot().active, ['s9']);
+    link.bye();
+    assert.deepEqual(link.snapshot().active, []);
+    assert.equal(idleCount(emitted, 's9'), 1, '断连必须给它补一条 turn/end aborted');
+  });
+
   test('去重窗口有界：超过 1000 条后最旧的 id 可再次被接受', () => {
     const { link, emitted } = harness();
     const first = ev('session.execution.started', 's1');

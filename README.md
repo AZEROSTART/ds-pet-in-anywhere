@@ -10,6 +10,15 @@ It keeps living after OpenCode quits._
 
 [中文](#中文) · [English](#english)
 
+## 六档状态 / Six states
+
+<img src="docs/images/states.png" alt="思考 / 忙碌 / 整理 / 等待确认 / 完成 / 出错 六档状态" width="100%" />
+
+> 实机窗口截图（背景换成浅色便于看清）：档位由 OpenCode 事件驱动，气泡文案来自配置
+> `workStatusTexts`，动画是逐帧 webm。
+> _Real window captures, light backdrop added for legibility. States are driven by OpenCode events;
+> bubble texts come from `workStatusTexts` in the config.*
+
 ---
 
 ## 中文

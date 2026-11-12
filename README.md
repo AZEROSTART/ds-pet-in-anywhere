@@ -1,5 +1,7 @@
 # ds-pet-in-anywhere
 
+<img src="docs/images/hero.png" alt="ds-pet-in-anywhere — a transparent desktop pet on macOS that mirrors OpenCode sessions" width="100%" />
+
 一只**住在桌面上**的透明宠物：常驻、置顶、点击穿透，跟着你的 OpenCode 会话状态活动
 （思考 / 忙碌 / 整理 / 等待 / 成功 / 出错），OpenCode 关掉后继续待机。
 
@@ -183,6 +185,14 @@ rm -rf ~/.opencode-pet        # 配置文件与日志，按需
 - 桥没有单批条数上限（只有 100ms 合批窗口）。
 - 多显示器 / 混合 DPI 未做自动化验证。
 
+### 文档
+
+- [docs/design.md](docs/design.md)：设计基线（为什么是独立进程、为什么 fork upstream 的 standalone 模式），
+  文末附**实现与设计的差异**
+- [docs/bridge-protocol.md](docs/bridge-protocol.md)：桥协议 v1 的准确参考（端点、鉴权、事件表、焦点规则）
+- [docs/opencode-2.2.7-events.md](docs/opencode-2.2.7-events.md)：2.2.7 事件探针结论，含「哪个信号能当焦点」
+- [docs/implementation-plan.md](docs/implementation-plan.md)：实施计划（已完成，保留作变更记录）
+
 ### 授权
 
 - **代码**：MIT（见 `LICENSE`），保留上游版权头。
@@ -347,6 +357,17 @@ rm -rf ~/.opencode-pet        # config + logs, if you want them gone
 - Focus lives in memory only: after a pet restart it waits for your next message to re-focus.
 - No per-batch event cap on the bridge (only the 100ms batching window).
 - Multi-display and mixed-DPI setups are not covered by automated checks.
+
+### Docs
+
+- [docs/design.md](docs/design.md) — design baseline (why a standalone process, why fork the upstream
+  standalone mode) plus an "implementation vs. design" diff at the end
+- [docs/bridge-protocol.md](docs/bridge-protocol.md) — the bridge v1 reference (endpoints, auth, event
+  table, focus rules)
+- [docs/opencode-2.2.7-events.md](docs/opencode-2.2.7-events.md) — probe findings for 2.2.7, including
+  which signal can serve as focus
+- [docs/implementation-plan.md](docs/implementation-plan.md) — the original execution plan, kept as a
+  changelog
 
 ### License & credits
 

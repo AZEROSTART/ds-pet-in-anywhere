@@ -118,8 +118,11 @@ export function createBridgeLink(deps: LinkDeps): BridgeLink {
         };
         const translated = translate(enriched, depthOf);
         if (!translated) continue;
-        if (translated.event.type === 'turn/start') active.add(event.sessionID);
+        // 每个产生状态变化的会话都进 active，不只 turn/start 的那些：
+        // 插件可能在回合中途才接上（只看到 tool/call），这类条目原来永远等不到 turn/end，
+        // 会永久占着展示槽（僵尸 working/thinking）。在 active 里，断连/bye 时能一并收尾。
         if (translated.event.type === 'turn/end') active.delete(event.sessionID);
+        else active.add(event.sessionID);
         if (process.env.OPENCODE_PET_BRIDGE_DEBUG === '1')
           console.log('[bridge]', JSON.stringify({ session: translated.session, event: translated.event }));
         deps.emit('session/event', translated.session, translated.event);

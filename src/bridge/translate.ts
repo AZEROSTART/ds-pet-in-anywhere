@@ -44,7 +44,8 @@ export function translate(event: BridgeEvent, depthOf: (sessionID: string) => nu
       ...(event.parentID === undefined ? {} : { parentID: event.parentID }),
       header,
     },
-    event: dsh,
+    // seq 必须留在事件顶层：宿主 session-watch 读 `event.seq` 做「同档位取最近」的排序。
+    event: event.seq === undefined ? dsh : { ...dsh, seq: event.seq },
   };
 }
 
@@ -81,6 +82,9 @@ function dshEventOf(event: BridgeEvent, data: Record<string, unknown>): DshSessi
       return { type: 'approval/replied', data: {} };
     case 'session.text.ended':
       return { type: 'assistant/message', data: { text: text(data.text) ?? '' } };
+    case 'user.message':
+      // 用户亲自发的消息：宿主用它把展示锁定到这个会话（后台会话不抢镜）。
+      return { type: 'user/message', data: {} };
     case 'session.meta':
       return null;
     default:

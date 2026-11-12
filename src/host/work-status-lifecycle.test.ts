@@ -406,4 +406,27 @@ describe('任务文案生命周期 —— 多会话不串文案', () => {
     assert.equal(snap.state, 'working');
     assert.equal(snap.task, 'M1 的任务');
   });
+
+  test('user/message 锁定展示会话：后台会话再忙也不抢镜', async (t) => {
+    const h = setup();
+    t.after(h.dispose);
+    // 后台会话先开跑（优先级更高的一档）
+    h.emit('bg', TURN_START(1));
+    h.emit('bg', TOOL_CALL(2)); // working(40)
+    assert.equal((await h.snapshot()).state, 'working');
+
+    // 用户在自己的会话里发消息 → 展示锁定到 m1（即使它只是 thinking(30)）
+    h.emit('m1', { type: 'user/message', data: { source: { kind: 'user' } } });
+    h.emit('m1', TURN_START(3));
+    assert.equal((await h.snapshot()).state, 'thinking');
+
+    // 后台会话升到 waiting 也不抢回展示
+    h.emit('bg', { type: 'approval/asked', data: { toolName: 'bash' } });
+    assert.equal((await h.snapshot()).state, 'thinking');
+
+    // m1 回合结束 → 展示 m1 的完成档（终态窗口过后由宿主清理成空闲），不回落后台会话
+    h.emit('m1', TURN_END(4, 'completed'));
+    const snap = await h.snapshot();
+    assert.equal(snap.state, 'success', '聚焦会话跑完 → 庆祝档，而不是后台会话的 working');
+  });
 });

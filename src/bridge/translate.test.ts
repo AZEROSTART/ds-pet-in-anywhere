@@ -105,3 +105,19 @@ describe('translate —— 会话元数据与子代理', () => {
     assert.equal(translate(ev('session.usage.updated'), depth0), null);
   });
 });
+
+describe('translate —— 用户消息与事件序号', () => {
+  test('user.message -> user/message（宿主据此锁定展示会话）', () => {
+    assert.deepEqual(translate(ev('user.message'), depth0)?.event, { type: 'user/message', data: {} });
+  });
+
+  test('seq 透传到 DSH 事件顶层（宿主按它做最近优先的排序）', () => {
+    const result = translate(ev('session.tool.called', { name: 'bash', callId: 'c1' }, { seq: 42 }), depth0);
+    assert.equal(result?.event.seq, 42);
+  });
+
+  test('没有 seq 时不产生该字段（老插件照旧可用）', () => {
+    const result = translate(ev('session.tool.called', { name: 'bash', callId: 'c1' }), depth0);
+    assert.equal('seq' in (result?.event ?? {}), false);
+  });
+});

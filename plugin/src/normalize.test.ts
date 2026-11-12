@@ -105,3 +105,29 @@ describe('normalize —— 确认、正文与忽略项', () => {
     assert.equal(normalize(ev('session.idle', {}), state), null);
   });
 });
+
+describe('normalize —— 用户消息与事件序号', () => {
+  test('inbox.enqueued（item.type=user）→ user.message', () => {
+    const state = createNormalizeState();
+    const result = normalize(
+      ev('session.inbox.enqueued', { sessionID: 's1', inboxID: 'msg_1', item: { type: 'user', payload: {} } }),
+      state,
+    );
+    assert.equal(result?.type, 'user.message');
+    assert.equal(result?.sessionID, 's1');
+  });
+
+  test('inbox.enqueued（item.type=synthetic，自动续跑）不产生焦点事件', () => {
+    const state = createNormalizeState();
+    assert.equal(
+      normalize(ev('session.inbox.enqueued', { sessionID: 's1', item: { type: 'synthetic', payload: {} } }), state),
+      null,
+    );
+  });
+
+  test('durable.seq 透传（宿主按它做最近优先排序）', () => {
+    const state = createNormalizeState();
+    const event = { ...ev('session.execution.started', { sessionID: 's1' }), durable: { seq: 17 } };
+    assert.equal(normalize(event, state)?.seq, 17);
+  });
+});

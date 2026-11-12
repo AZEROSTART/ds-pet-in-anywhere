@@ -229,4 +229,41 @@ describe('WorkStatusStore —— 按会话聚合与展示（issue #59）', () =>
       assert.equal(s.snapshot().state, order[i], `${order[i]} 应压过 ${order[i + 1]}`);
     }
   });
+
+  test('聚焦会话覆盖优先级：只展示你最近发过消息的那个会话', () => {
+    const s = new WorkStatusStore();
+    s.setState('mine', 'thinking', 1);
+    s.setTask('mine', '我的任务');
+    s.setState('other', 'working', 2); // working 本来优先级更高
+    assert.equal(s.snapshot().sessionId, 'other');
+    assert.equal(s.setFocus('mine'), true);
+    assert.deepEqual(
+      { state: s.snapshot().state, task: s.snapshot().task, sessionId: s.snapshot().sessionId },
+      { state: 'thinking', task: '我的任务', sessionId: 'mine' },
+    );
+    // 别的会话继续忙（甚至升到 waiting）也不抢回展示
+    s.setState('other', 'waiting', 5);
+    assert.equal(s.snapshot().sessionId, 'mine');
+  });
+
+  test('聚焦会话没有活动条目 → 空闲，且不回落其它会话', () => {
+    const s = new WorkStatusStore();
+    s.setState('other', 'working', 1);
+    s.setFocus('mine');
+    assert.equal(s.snapshot().state, null);
+    assert.equal(s.snapshot().sessionId, null);
+    s.setState('mine', 'working', 2);
+    assert.equal(s.snapshot().sessionId, 'mine', '聚焦会话一开工就立刻展示');
+    s.clear('mine');
+    assert.equal(s.snapshot().state, null, '回合结束 → 回空闲，不展示后台会话');
+  });
+
+  test('聚焦同一会话重复调用不推进 ts（防多余写入）', () => {
+    const s = new WorkStatusStore();
+    s.setState('a', 'working', 1);
+    s.setFocus('a');
+    const ts = s.snapshot().ts;
+    assert.equal(s.setFocus('a'), false);
+    assert.equal(s.snapshot().ts, ts);
+  });
 });

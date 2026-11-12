@@ -176,6 +176,10 @@ export function registerSessionWatch(deps: SessionWatchInput): void {
         return;
       }
       if (type === 'user/message') {
+        // 用户亲自发消息 = 「你现在就在这个会话里」：把展示锁定到它，别的会话再忙也不抢镜。
+        // 子代理的 user/message 是父级转发的提示词，不能当焦点（否则团队里一有成员跑起来宠物就跳会话）。
+        const origin = (session as { header?: { origin?: unknown } } | null)?.header?.origin;
+        if (origin !== 'subagent') workStatus.setFocus(sessionId);
         // 目标续跑轮判定：自动轮的消息带 source.kind==='goal'（round>0），该轮属自动续跑，
         // 其 turn/end completed 只是「本轮完成」，不是整个任务完成
         const source = (event as { data?: { source?: { kind?: string } } })?.data?.source;

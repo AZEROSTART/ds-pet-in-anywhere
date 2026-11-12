@@ -1,26 +1,26 @@
 {
   "name": "opencode-pet",
   "version": "0.4.7",
-  "description": "一只常驻 macOS 桌面的透明宠物，跟着 OpenCode 的会话状态活动。",
+  "description": "一只常驻 macOS 桌面的透明宠物，跟随 OpenCode 会话状态活动（独立应用，不是 DSH 插件）。",
   "icon": "assets/logo.png",
   "keywords": [
-    "dsh",
-    "dsh-plugin",
-    "deepseek-harness",
+    "opencode",
+    "opencode-plugin",
     "desktop-pet",
-    "pet",
+    "macos",
+    "electron",
+    "always-on-top",
     "floating-widget",
-    "web-ui",
     "cordis",
     "react"
   ],
-  "homepage": "https://github.com/PC2005-cloud/dsh-pet#readme",
+  "homepage": "https://github.com/AZEROSTART/ds-pet-in-anywhere#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PC2005-cloud/dsh-pet.git"
+    "url": "git+https://github.com/AZEROSTART/ds-pet-in-anywhere.git"
   },
   "bugs": {
-    "url": "https://github.com/PC2005-cloud/dsh-pet/issues"
+    "url": "https://github.com/AZEROSTART/ds-pet-in-anywhere/issues"
   },
   "_comment": [
     "=============== dsh-pet 包清单说明 ===============",
